@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h4 mb-3">Report Lost Item</h1>
+<form method="post" enctype="multipart/form-data" class="row g-3">
+  {{ form.csrf_token }}
+  <div class="col-md-6">{{ form.name.label(class="form-label") }} {{ form.name(class="form-control") }}</div>
+  <div class="col-md-6">{{ form.category.label(class="form-label") }} {{ form.category(class="form-select") }}</div>
+  <div class="col-md-6">{{ form.location_found.label(class="form-label") }} {{ form.location_found(class="form-control") }}</div>
+  <div class="col-md-6">{{ form.date_found.label(class="form-label") }} {{ form.date_found(class="form-control") }}</div>
+  <div class="col-12">{{ form.description.label(class="form-label") }} {{ form.description(class="form-control", rows="4") }}</div>
+  <div class="col-md-6">{{ form.photo.label(class="form-label") }} {{ form.photo(class="form-control") }}</div>
+  <div class="col-12 d-grid d-md-inline"><button class="btn btn-brand">{{ form.submit.label.text }}</button></div>
+</form>
+{% endblock %}

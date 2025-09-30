@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h4 mb-3">My Dashboard</h1>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header fw-semibold">My Lost Items</div>
+      <ul class="list-group list-group-flush">
+        {% for it in my_items %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('item_detail', item_id=it.id) }}">{{ it.name }}</a>
+            <span class="badge {{ 'text-bg-success' if it.status=='returned' else ('text-bg-warning' if it.status=='claimed' else 'text-bg-info') }}">{{ it.status|capitalize }}</span>
+          </li>
+        {% else %}
+          <li class="list-group-item">No items yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header fw-semibold">My Claims</div>
+      <ul class="list-group list-group-flush">
+        {% for c in my_claims %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ c.item.name }}</span>
+            <span class="badge {{ 'text-bg-success' if c.status=='approved' else ('text-bg-danger' if c.status=='rejected' else 'text-bg-warning') }}">{{ c.status|capitalize }}</span>
+          </li>
+        {% else %}
+          <li class="list-group-item">No claims submitted.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

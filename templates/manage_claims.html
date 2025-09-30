@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block content %}
+<h1 class="h5 mb-3">Claim Requests</h1>
+<table class="table align-middle">
+  <thead><tr><th>Item</th><th>Claimer</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>
+    {% for c in claims %}
+    <tr>
+      <td><a href="{{ url_for('item_detail', item_id=c.item.id) }}">{{ c.item.name }}</a></td>
+      <td>{{ c.claimer.name }} ({{ c.claimer.email }})</td>
+      <td class="small">{{ c.message or '-' }}</td>
+      <td>{{ c.status|capitalize }}</td>
+      <td class="d-flex gap-1">
+        <form method="post" action="{{ url_for('handle_claim', claim_id=c.id, action='approve') }}"><button class="btn btn-sm btn-success">Approve</button></form>
+        <form method="post" action="{{ url_for('handle_claim', claim_id=c.id, action='reject') }}"><button class="btn btn-sm btn-danger">Reject</button></form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

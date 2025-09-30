@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-6">
+    {% if item.photo_path %}
+      <img src="{{ url_for('uploaded_file', filename=item.photo_path) }}" class="w-100 rounded-4" alt="Photo of {{ item.name }}">
+    {% else %}
+      <div class="bg-white border rounded-4 p-5 text-center">No photo</div>
+    {% endif %}
+  </div>
+  <div class="col-md-6">
+    <h1 class="h3">{{ item.name }}</h1>
+    <div class="mb-2">
+      <span class="badge text-bg-secondary">{{ item.category.name if item.category }}</span>
+      <span class="badge {{ 'text-bg-success' if item.status=='returned' else ('text-bg-warning' if item.status=='claimed' else 'text-bg-info') }}">{{ item.status|capitalize }}</span>
+    </div>
+    <p class="js-text">{{ item.description }}</p>
+    <dl class="row small">
+      <dt class="col-4">Found at</dt><dd class="col-8 js-text">{{ item.location_found }}</dd>
+      <dt class="col-4">Date</dt><dd class="col-8">{{ item.date_found.strftime('%b %d, %Y') }}</dd>
+    </dl>
+    {% if current_user.is_authenticated and item.status == 'found' %}
+      <form method="post" action="{{ url_for('claim', item_id=item.id) }}" class="mt-3">
+        <label class="form-label">Claim message (optional)</label>
+        <textarea class="form-control" name="message" rows="3" placeholder="Describe proof of ownership (details, images to bring, etc.)"></textarea>
+        <button class="btn btn-brand mt-2">Submit claim</button>
+      </form>
+    {% else %}
+      <div class="alert alert-info mt-3">Sign in to claim this item.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

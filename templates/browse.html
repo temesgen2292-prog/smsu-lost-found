@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-3 align-items-end mb-3">
+  <div class="col-12 col-lg-9">
+    <form class="row g-2" method="get">
+      <div class="col-12 col-md-5">
+        <label class="form-label visually-hidden">Search</label>
+        <input type="text" name="q" value="{{ request.args.get('q','') }}" class="form-control" placeholder="Search items, locations...">
+      </div>
+      <div class="col-6 col-md-3">
+        <select class="form-select" name="category">
+          {% for val,label in form.category.choices %}
+            <option value="{{ val }}" {{ 'selected' if request.args.get('category', type=int, default=-1)==val else '' }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select" name="sort">
+          {% for val,label in form.sort.choices %}
+            <option value="{{ val }}" {{ 'selected' if request.args.get('sort','date_desc')==val else '' }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-2 d-grid">
+        <button class="btn btn-brand">Apply</button>
+      </div>
+    </form>
+  </div>
+  <div class="col-12 col-lg-3 text-lg-end">
+    <small class="text-secondary">Showing {{ items|length }} items</small>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for item in items %}
+    <div class="col-12 col-sm-6 col-lg-3">{% include "_item_card.html" %}</div>
+  {% else %}
+    <p>No results.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% block content %}
+<h1 class="h5 mb-3">Manage Items</h1>
+<table class="table align-middle">
+  <thead><tr><th>Item</th><th>Category</th><th>Found</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for it in items %}
+    <tr>
+      <td><a href="{{ url_for('item_detail', item_id=it.id) }}">{{ it.name }}</a></td>
+      <td>{{ it.category.name if it.category }}</td>
+      <td class="small">{{ it.date_found.strftime('%Y-%m-%d') }}</td>
+      <td>{{ it.status|capitalize }}</td>
+      <td>
+        <form method="post" action="{{ url_for('set_item_status', item_id=it.id) }}" class="d-flex gap-1">
+          <input type="hidden" name="status" value="found"><button class="btn btn-sm btn-outline-info">Found</button>
+          <input type="hidden" name="status" value="claimed"><button class="btn btn-sm btn-outline-warning">Claimed</button>
+          <input type="hidden" name="status" value="returned"><button class="btn btn-sm btn-outline-success">Returned</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block content %}
+<h1 class="h5 mb-3">Categories</h1>
+<form method="post" class="row g-2 mb-3">
+  <div class="col-8 col-md-4"><input class="form-control" name="name" placeholder="New category name"></div>
+  <div class="col-4 col-md-2 d-grid"><button class="btn btn-brand">Add</button></div>
+</form>
+<ul class="list-group">{% for c in cats %}<li class="list-group-item d-flex justify-content-between"><span>{{ c.name }}</span><span class="text-secondary small">{{ c.slug }}</span></li>{% endfor %}</ul>
+{% endblock %}
