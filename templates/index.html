@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SMSU Lost & Found</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header>
+    <h1>SMSU Lost & Found</h1>
+    <p>Post items you’ve lost or found and contact each other to reunite them.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Add a Listing</h2>
+      <form id="itemForm">
+        <div class="row">
+          <label for="title">Title *</label>
+          <input id="title" name="title" placeholder="e.g., Lost black wallet" required />
+        </div>
+
+        <div class="row">
+          <label for="category">Category *</label>
+          <select id="category" name="category" required>
+            <option value="">Select one</option>
+            <option value="lost">Lost</option>
+            <option value="found">Found</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label for="location">Location</label>
+          <input id="location" name="location" placeholder="e.g., Library 2nd floor" />
+        </div>
+
+        <div class="row">
+          <label for="description">Description *</label>
+          <textarea id="description" name="description" rows="4" placeholder="Short details…" required></textarea>
+        </div>
+
+        <div class="row">
+          <label for="contact">Contact *</label>
+          <input id="contact" name="contact" placeholder="Email or phone" required />
+        </div>
+
+        <button type="submit">Post Listing</button>
+        <p class="help">Fields marked * are required.</p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>All Listings</h2>
+      <div class="filters">
+        <button data-filter="all" class="filter active">All</button>
+        <button data-filter="lost" class="filter">Lost</button>
+        <button data-filter="found" class="filter">Found</button>
+        <input id="search" placeholder="Search title/description…" />
+      </div>
+      <ul id="items" class="items"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <small>Built with Flask + SQLite • Demo project</small>
+  </footer>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
