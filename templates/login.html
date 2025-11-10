@@ -9,15 +9,15 @@
           {{ form.csrf_token }}
           <div class="mb-3">
             {{ form.email.label(class="form-label") }}
-            {{ form.email(class="form-control", placeholder="name@mustangs.smsu.edu") }}
+            {{ form.email(class="form-control", placeholder="you@go.minnstate.edu") }}
+            {% for e in form.email.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
           <div class="mb-3">
             {{ form.password.label(class="form-label") }}
             {{ form.password(class="form-control", placeholder="Password") }}
+            {% for e in form.password.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
-          <div class="d-grid">
-            <button class="btn btn-brand btn-lg">Sign in</button>
-          </div>
+          <div class="d-grid"><button class="btn btn-brand btn-lg">{{ form.submit.label.text }}</button></div>
         </form>
         <div class="text-center mt-3 small">
           New here? <a href="{{ url_for('register') }}">Create account</a>

@@ -45,7 +45,7 @@ class Item(Base):
     status: Mapped[str] = mapped_column(String(20), default=ItemStatus.FOUND)
     location_found: Mapped[str] = mapped_column(String(140), nullable=False)
     date_found: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    photo_path: Mapped[str] = mapped_column(String(255))
+    photo_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.id"))

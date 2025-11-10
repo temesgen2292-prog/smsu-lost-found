@@ -1,4 +1,19 @@
+# Python / Flask
 __pycache__/
-instance/
-*.db
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
 .env
+*.log
+
+# Flask instance data & DBs
+instance/
+uploads/
+
+# OS/editor stuff
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

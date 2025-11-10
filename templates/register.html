@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-md-6 col-lg-5">
+  <div class="col-md-7 col-lg-6">
     <div class="card shadow-sm">
       <div class="card-body p-4">
         <h1 class="h4 mb-3">Create account</h1>
@@ -10,18 +10,23 @@
           <div class="mb-3">
             {{ form.name.label(class="form-label") }}
             {{ form.name(class="form-control", placeholder="Full name") }}
+            {% for e in form.name.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
           <div class="mb-3">
             {{ form.email.label(class="form-label") }}
-            {{ form.email(class="form-control", placeholder="name@mustangs.smsu.edu") }}
+            {{ form.email(class="form-control", placeholder="you@go.minnstate.edu or you@minnstate.edu") }}
+            {% for e in form.email.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            <div class="form-text">Students: <code>@go.minnstate.edu</code> • Staff: <code>@minnstate.edu</code></div>
           </div>
           <div class="mb-3">
             {{ form.password.label(class="form-label") }}
-            {{ form.password(class="form-control", placeholder="Password") }}
+            {{ form.password(class="form-control", placeholder="At least 6 characters") }}
+            {% for e in form.password.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
           <div class="mb-3">
             {{ form.confirm.label(class="form-label") }}
             {{ form.confirm(class="form-control", placeholder="Repeat password") }}
+            {% for e in form.confirm.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
           <div class="d-grid">
             <button class="btn btn-brand btn-lg">Create account</button>

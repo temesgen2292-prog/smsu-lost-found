@@ -3,11 +3,13 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask import (
-    Flask, render_template, redirect, url_for, flash, request, abort, send_from_directory, current_app
+    Flask, render_template, redirect, url_for, flash, request, abort,
+    send_from_directory, current_app
 )
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from sqlalchemy import create_engine, select, func
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker, scoped_session, joinedload
 from config import Config
 from models import Base, User, Roles, Category, Item, ItemStatus, Claim, ClaimStatus, Notification
 from forms import LoginForm, RegisterForm, ReportItemForm, SearchForm
@@ -18,6 +20,9 @@ app.config.from_object(Config)
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 os.makedirs(app.instance_path, exist_ok=True)
 
+# Enable CSRF globally (so failures are surfaced cleanly)
+CSRFProtect(app)
+
 engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"], future=True)
 Session = scoped_session(sessionmaker(bind=engine, autoflush=False, expire_on_commit=False))
 Base.metadata.create_all(engine)
@@ -25,6 +30,8 @@ Base.metadata.create_all(engine)
 # ----- Auth -----
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
+login_manager.login_message_category = "warning"
+
 @login_manager.user_loader
 def load_user(user_id):
     with Session() as s:
@@ -33,7 +40,7 @@ def load_user(user_id):
 # ----- Helpers -----
 def allowed_file(filename):
     ext = filename.rsplit(".", 1)[-1].lower()
-    return "." in filename and ext in app.config["ALLOWED_EXTENSIONS"]
+    return "." in filename and ext in current_app.config["ALLOWED_EXTENSIONS"]
 
 def save_photo(file_storage):
     if not file_storage or file_storage.filename == "":
@@ -43,7 +50,7 @@ def save_photo(file_storage):
     fname = secure_filename(file_storage.filename)
     token = secrets.token_hex(6)
     fname = f"{token}_{fname}"
-    path = os.path.join(app.config["UPLOAD_FOLDER"], fname)
+    path = os.path.join(current_app.config["UPLOAD_FOLDER"], fname)
     file_storage.save(path)
     return fname
 
@@ -53,8 +60,8 @@ def admin_required():
 
 def notify(user_id, title, body):
     with Session() as s:
-        n = Notification(user_id=user_id, title=title, body=body)
-        s.add(n); s.commit()
+        s.add(Notification(user_id=user_id, title=title, body=body))
+        s.commit()
 
 # ----- Seed categories (first run) -----
 with Session() as s:
@@ -70,12 +77,27 @@ with Session() as s:
 @app.route("/")
 def index():
     with Session() as s:
-        total_items = s.scalar(select(func.count(Item.id)))
-        returned = s.scalar(select(func.count()).where(Item.status == ItemStatus.RETURNED))
-        claimed = s.scalar(select(func.count()).where(Item.status == ItemStatus.CLAIMED))
-        recent = s.execute(select(Item).order_by(Item.created_at.desc()).limit(8)).scalars().all()
+        total_items = s.scalar(select(func.count(Item.id))) or 0
+        returned = s.scalar(select(func.count()).where(Item.status == ItemStatus.RETURNED)) or 0
+        claimed  = s.scalar(select(func.count()).where(Item.status == ItemStatus.CLAIMED)) or 0
+
+        recent = (
+            s.execute(
+                select(Item)
+                .options(joinedload(Item.category))   # <-- eager-load category
+                .order_by(Item.created_at.desc())
+                .limit(8)
+            )
+            .scalars()
+            .all()
+        )
+
         cats = s.execute(select(Category).order_by(Category.name)).scalars().all()
-    return render_template("index.html", recent=recent, stats=dict(total=total_items or 0, returned=returned or 0, claimed=claimed or 0), cats=cats)
+
+    return render_template("index.html",
+                           recent=recent,
+                           stats=dict(total=total_items, returned=returned, claimed=claimed),
+                           cats=cats)
 
 @app.route("/browse")
 def browse():
@@ -83,7 +105,9 @@ def browse():
     with Session() as s:
         cats = s.execute(select(Category).order_by(Category.name)).scalars().all()
         form.category.choices = [(-1, "All Categories")] + [(c.id, c.name) for c in cats]
-        q = s.query(Item)
+
+        # start query WITH eager-load
+        q = s.query(Item).options(joinedload(Item.category))  # <-- key line
 
         # filters
         if form.q.data:
@@ -98,22 +122,29 @@ def browse():
         if form.sort.data == "date_asc":
             q = q.order_by(Item.date_found.asc())
         elif form.sort.data == "category":
+            # joining is fine; joinedload still prevents detached access later
             q = q.join(Category).order_by(Category.name.asc(), Item.date_found.desc())
         else:
             q = q.order_by(Item.date_found.desc())
 
         items = q.all()
         cats_map = {c.id: c for c in cats}
+
     return render_template("browse.html", form=form, items=items, cats_map=cats_map)
+
 
 @app.route("/item/<int:item_id>")
 def item_detail(item_id):
     with Session() as s:
-        item = s.get(Item, item_id)
+        item = s.execute(
+            select(Item)
+            .options(joinedload(Item.category))      # <-- eager-load category
+            .where(Item.id == item_id)
+        ).scalar_one_or_none()
         if not item:
             abort(404)
-        # Public sees limited; full details after login
     return render_template("item_detail.html", item=item)
+
 
 # ----- Auth -----
 @app.route("/login", methods=["GET","POST"])
@@ -122,11 +153,15 @@ def login():
     if form.validate_on_submit():
         with Session() as s:
             user = s.execute(select(User).where(User.email == form.email.data.lower().strip())).scalar_one_or_none()
-            if user and check_password_hash(user.password_hash, form.password.data) and user.is_active:
-                login_user(user)
+            if not user or not check_password_hash(user.password_hash, form.password.data):
+                flash("Invalid email or password.", "danger")
+            elif not user.is_active:
+                flash("This account is disabled. Contact an administrator.", "warning")
+            else:
+                login_user(user, remember=True)
                 flash("Welcome back!", "success")
                 return redirect(request.args.get("next") or url_for("dashboard"))
-        flash("Invalid credentials.", "danger")
+    # If POST but invalid, show field errors via template
     return render_template("login.html", form=form)
 
 @app.route("/register", methods=["GET","POST"])
@@ -134,9 +169,11 @@ def register():
     form = RegisterForm()
     if form.validate_on_submit():
         with Session() as s:
-            existing = s.execute(select(User).where(User.email == form.email.data.lower().strip())).scalar_one_or_none()
+            existing = s.execute(
+                select(User).where(User.email == form.email.data.lower().strip())
+            ).scalar_one_or_none()
             if existing:
-                flash("Email already registered.", "warning")
+                flash("That email is already registered. Try signing in.", "warning")
             else:
                 u = User(
                     name=form.name.data.strip(),
@@ -147,6 +184,7 @@ def register():
                 s.add(u); s.commit()
                 flash("Account created. Please sign in.", "success")
                 return redirect(url_for("login"))
+    # If POST but invalid, template shows per-field messages
     return render_template("register.html", form=form)
 
 @app.route("/logout")
@@ -166,6 +204,8 @@ def report():
     form.category.choices = [(c.id, c.name) for c in cats]
     if form.validate_on_submit():
         photo_filename = save_photo(form.photo.data)
+        if not photo_filename:
+            photo_filename = "" # ensure NOT NULL tables accept it
         with Session() as s:
             item = Item(
                 name=form.name.data.strip(),
@@ -193,18 +233,18 @@ def dashboard():
 @app.route("/claim/<int:item_id>", methods=["POST"])
 @login_required
 def claim(item_id):
-    msg = request.form.get("message", "").strip()[:1000]
+    msg = (request.form.get("message") or "").strip()[:1000]
     with Session() as s:
         item = s.get(Item, item_id)
         if not item or item.status != ItemStatus.FOUND:
-            abort(400)
+            flash("This item cannot be claimed.", "warning")
+            return redirect(url_for("item_detail", item_id=item_id))
         existing = s.execute(select(Claim).where(Claim.item_id==item_id, Claim.claimer_id==current_user.id)).scalar_one_or_none()
         if existing:
-            flash("You already claimed this item.", "warning")
+            flash("You already claimed this item.", "info")
         else:
             c = Claim(item_id=item_id, claimer_id=current_user.id, message=msg)
             s.add(c); s.commit()
-            # Notify admins
             admin_ids = [u.id for u in s.query(User).filter(User.role==Roles.ADMIN).all()]
             for aid in admin_ids:
                 notify(aid, "New Claim Request", f"A claim was submitted for item #{item.id}: {item.name}")
@@ -216,12 +256,11 @@ def claim(item_id):
 def notifications():
     with Session() as s:
         notes = s.query(Notification).filter(Notification.user_id == current_user.id).order_by(Notification.created_at.desc()).all()
-        # mark as read
         for n in notes: n.is_read = True
         s.commit()
     return render_template("notifications.html", notes=notes)
 
-# ----- Admin: dashboards & management -----
+# ----- Admin management (unchanged routes; still role-checked) ---------------
 @app.route("/admin")
 @login_required
 def admin_dashboard():
@@ -277,7 +316,7 @@ def handle_claim(claim_id, action):
         if action == "approve":
             c.status = ClaimStatus.APPROVED
             c.item.status = ItemStatus.CLAIMED
-            notify(c.claimer_id, "Claim Approved", f"Your claim for '{c.item.name}' was approved. Please follow pickup instructions.")
+            notify(c.claimer_id, "Claim Approved", f"Your claim for '{c.item.name}' was approved.")
         elif action == "reject":
             c.status = ClaimStatus.REJECTED
             notify(c.claimer_id, "Claim Rejected", f"Your claim for '{c.item.name}' was rejected.")
@@ -301,9 +340,9 @@ def manage_categories():
     admin_required()
     with Session() as s:
         if request.method == "POST":
-            name = request.form.get("name","").strip()
-            slug = re.sub(r"[^a-z0-9\-]+","-", name.lower()).strip("-")
+            name = (request.form.get("name") or "").strip()
             if name:
+                slug = re.sub(r"[^a-z0-9\-]+","-", name.lower()).strip("-")
                 s.add(Category(name=name, slug=slug)); s.commit()
                 flash("Category added.", "success")
         cats = s.query(Category).order_by(Category.name).all()
@@ -312,12 +351,17 @@ def manage_categories():
 # ----- Static uploads -----
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
 
 # ----- Errors -----
 @app.errorhandler(403)
-def forbidden(e):
-    return render_template("403.html"), 403
+def forbidden(e): return render_template("403.html"), 403
+
+@app.errorhandler(CSRFError)
+def handle_csrf(err):
+    flash("Form expired or invalid. Please try again.", "warning")
+    return redirect(request.referrer or url_for("index"))
 
 if __name__ == "__main__":
     app.run(debug=True)
+F
