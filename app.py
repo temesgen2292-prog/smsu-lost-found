@@ -100,6 +100,7 @@ def index():
                            cats=cats)
 
 @app.route("/browse")
+@login_required
 def browse():
     form = SearchForm(request.args, meta={"csrf": False})
     with Session() as s:
