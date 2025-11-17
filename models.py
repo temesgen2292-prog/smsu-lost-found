@@ -4,6 +4,7 @@ from sqlalchemy import (
     Column, Integer, String, Text, DateTime, ForeignKey, Enum, Boolean
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column, declarative_base
+from enum import Enum as PyEnum
 
 Base = declarative_base()
 

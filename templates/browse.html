@@ -10,7 +10,10 @@
       <div class="col-6 col-md-3">
         <select class="form-select" name="category">
           {% for val,label in form.category.choices %}
-            <option value="{{ val }}" {{ 'selected' if request.args.get('category', type=int, default=-1)==val else '' }}>{{ label }}</option>
+            <option value="{{ val }}" 
+                    {{ 'selected' if request.args.get('category', default='-1')|int == val else '' }}></option>
+              {{ label }}
+            </option>
           {% endfor %}
         </select>
       </div>

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container py-3">
+    <h3 class="mb-3">Notifications</h3>
+
+    {% if notes %}
+        <ul class="list-group">
+            {% for n in notes %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        {{ n.message }}  
+                        <br>
+                        <small class="text-muted">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </span>
+
+                    {% if not n.is_read %}
+                        <span class="badge bg-primary">New</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No items has been reported now.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -32,6 +32,17 @@ login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.login_message_category = "warning"
 
+def unread_count():
+    if current_user.is_authenticated:
+        with Session() as s:
+            return s.query(Notification).filter_by(
+                user_id=current_user.id,
+                is_read=False
+            ).count()
+    return 0
+
+app.jinja_env.globals.update(unread_count=unread_count)
+
 @login_manager.user_loader
 def load_user(user_id):
     with Session() as s:
@@ -257,7 +268,9 @@ def claim(item_id):
 def notifications():
     with Session() as s:
         notes = s.query(Notification).filter(Notification.user_id == current_user.id).order_by(Notification.created_at.desc()).all()
-        for n in notes: n.is_read = True
+        for n in notes:
+            if not n.is_read:
+               n.is_read = True
         s.commit()
     return render_template("notifications.html", notes=notes)
 
@@ -365,4 +378,4 @@ def handle_csrf(err):
 
 if __name__ == "__main__":
     app.run(debug=True)
-F
+

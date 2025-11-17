@@ -3,47 +3,71 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ config.SCHOOL_NAME }} • Lost &amp; Found</title>
+  <title>{{ config.SCHOOL_NAME }} • Lost & Found</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 <body>
+
 <nav class="navbar navbar-expand-lg">
   <div class="container">
     <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="{{ url_for('index') }}">
-      <!-- Add your logo at /static/img/smsu.png (optional) -->
       <img src="{{ url_for('static', filename='img/smsu.png') }}" alt="" height="28" onerror="this.style.display='none'">
-      {{ config.SCHOOL_NAME }} Lost &amp; Found
+      {{ config.SCHOOL_NAME }} Lost & Found
     </a>
-    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+
+    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
     <div class="collapse navbar-collapse" id="nav">
+
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="{{ url_for('browse') }}">Browse Items</a></li>
+
         {% if current_user.is_authenticated %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('report') }}">Report Lost Item</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">My Dashboard</a></li>
+
           {% if current_user.role == 'admin' %}
             <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_dashboard') }}">Admin</a></li>
           {% endif %}
         {% endif %}
       </ul>
+
       <ul class="navbar-nav ms-auto">
         {% if current_user.is_authenticated %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('notifications') }}">Notifications</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Sign out</a></li>
+          <li class="nav-item position-relative">
+            <a class="nav-link position-relative" href="{{ url_for('notifications') }}">
+              Notifications
+              {% if unread_count() > 0 %}
+                <span class="badge rounded-pill bg-danger position-absolute top-0 start-100 translate-middle">
+                  {{ unread_count() }}
+                </span>
+              {% endif %}
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout') }}">Sign out</a>
+          </li>
+
         {% else %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Sign in</a></li>
           <li class="nav-item"><a class="nav-link btn btn-outline ms-2" href="{{ url_for('register') }}">Create account</a></li>
         {% endif %}
       </ul>
+
     </div>
   </div>
 </nav>
 
+
 <main class="container my-4">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index:1080; width:min(560px,92vw);">
+      <div class="position-fixed top-0 start-50 translate-middle-x mt-3"
+           style="z-index:1080; width:min(560px,92vw);">
         {% for cat, msg in messages %}
           <div class="alert alert-{{ cat }} shadow mb-2 d-flex align-items-center gap-2">
             {{ msg }}
@@ -52,17 +76,23 @@
       </div>
     {% endif %}
   {% endwith %}
+
   {% block content %}{% endblock %}
 </main>
 
+
 <footer class="py-4">
   <div class="container d-flex justify-content-between">
-    <span>&copy; {{ config.SCHOOL_NAME }} • Lost &amp; Found</span>
-    <span><a href="{{ url_for('browse') }}">How it works</a> • <a href="{{ url_for('browse') }}">Contact</a></span>
+    <span>&copy; {{ config.SCHOOL_NAME }} • Lost & Found</span>
+    <span>
+      <a href="{{ url_for('browse') }}">How it works</a> •
+      <a href="{{ url_for('browse') }}">Contact</a>
+    </span>
   </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='script.js') }}"></script>
+
 </body>
 </html>
